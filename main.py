@@ -10,8 +10,8 @@ from google.protobuf.internal import encoder
 
 from datetime import datetime
 from geopy.geocoders import GoogleV3
-#from requests.packages.urllib3.exceptions import InsecureRequestWarning
-#requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from s2sphere import *
 
 def encode(cellid):
@@ -210,7 +210,7 @@ def login_ptc(username, password):
     ticket = None
     try:
         ticket = re.sub('.*ticket=', '', r1.history[0].headers['Location'])
-    except e:
+    except Exception, e:
         if DEBUG:
             print(r1.json()['errors'][0])
         return None
