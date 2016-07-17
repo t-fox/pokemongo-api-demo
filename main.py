@@ -10,8 +10,8 @@ from google.protobuf.internal import encoder
 
 from datetime import datetime
 from geopy.geocoders import GoogleV3
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+#from requests.packages.urllib3.exceptions import InsecureRequestWarning
+#requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from s2sphere import *
 
 def encode(cellid):
