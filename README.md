@@ -6,11 +6,16 @@
 * `pip install -r requirements.txt`
 * Put Google Maps API key in `config.json`
 * Syntax: `./run.sh [user] [pass] "[location]"`
-* Open browser to "http://localhost:8000"
+* Open browser to `http://localhost:8000`
 
 **WINDOWS GUIDE:**
 
-https://www.reddit.com/r/pokemongodev/comments/4t8ohw/autoupdating_pokemon_go_map_scanner/d5g7xh8
+* `pip install -r requirements.txt`
+* Put Google Maps API key in `config.json`
+* Start `run.bat` and enter in prompts for username, password, and location
+* Open browser to `http://localhost:8000`
+
+Additional windows help here: https://www.reddit.com/r/pokemongodev/comments/4t8ohw/autoupdating_pokemon_go_map_scanner/d5g7xh80
 
 ## Thanks
 
