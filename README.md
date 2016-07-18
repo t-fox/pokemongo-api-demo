@@ -6,14 +6,14 @@ Generate a Google Maps API key here: https://console.developers.google.com/apis/
 **MAC/LINUX:**
 
 * `pip install -r requirements.txt`
-* Put Google Maps API key in `config.json
+* Put Google Maps API key in `config.json`
 * Syntax: `./run.sh [user] [pass] "[location]"`
 * Open browser to `http://localhost:8000`
 
 **WINDOWS GUIDE:**
 
 * `pip install -r requirements.txt`
-* Put Google Maps API key in `config.json` - generate a key [https://console.developers.google.com/apis/credentials](here)
+* Put Google Maps API key in `config.json`
 * Start `run.bat` and enter in prompts for username, password, and location
 * Open browser to `http://localhost:8000`
 
