@@ -145,12 +145,14 @@ def api_req(api_endpoint, access_token, *mehs, **kw):
             p_ret = pokemon_pb2.ResponseEnvelop()
             p_ret.ParseFromString(r.content)
 
+            '''
             if DEBUG:
                 print("REQUEST:")
                 print(p_req)
                 print("Response:")
                 print(p_ret)
                 print("\n\n")
+            '''
 
             if DEBUG:
                 print("[ ] Sleeping for 1 second")
@@ -194,11 +196,15 @@ def get_profile(access_token, api, useauth, *reqq):
     return api_req(api, access_token, req, useauth = useauth)
 
 def get_api_endpoint(access_token, api = API_URL):
-    p_ret = get_profile(access_token, api, None)
-    try:
-        return ('https://%s/rpc' % p_ret.api_url)
-    except:
-        return None
+    while True:
+        try:
+            p_ret = get_profile(access_token, api, None)
+            if ".com" in p_ret:
+                return ('https://%s/rpc' % p_ret.api_url)
+        except:
+            pass
+        print('[-] Error getting API endpoint (server may be down), retrying')
+        time.sleep(2)
 
 
 def login_ptc(username, password):
