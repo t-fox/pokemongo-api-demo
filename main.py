@@ -3,7 +3,6 @@ import re
 import struct
 import json
 import argparse
-import os
 import pokemon_pb2
 import time
 
@@ -54,7 +53,7 @@ default_step = 0.001
 
 NUM_STEPS = 5
 DATA_FILE = 'data.json'
-DATA = {}
+DATA = []
 
 def f2i(float):
   return struct.unpack('<Q', struct.pack('<d', float))[0]
@@ -67,45 +66,28 @@ def h2f(hex):
 
 def prune():
     # prune despawned pokemon
-    cur_time = time.time()
-    for (pokehash, poke) in DATA.items():
+    cur_time = int(time.time())
+    for i, poke in reversed(list(enumerate(DATA))):
+        poke['timeleft'] = poke['timeleft'] - (cur_time - poke['timestamp'])
         poke['timestamp'] = cur_time
-        if poke['expiry'] <= cur_time:
-            del DATA[pokehash]
-
-try:
-    with open(DATA_FILE, 'r') as f:
-        DATA = json.load(f)
-except:
-    pass
+        if poke['timeleft'] <= 0:
+            DATA.pop(i)
 
 def write_data_to_file():
     prune()
 
-    with open(DATA_FILE + ".new", 'w') as f:
+    with open(DATA_FILE, 'w') as f:
         json.dump(DATA, f, indent=2)
-    os.rename(DATA_FILE + ".new", DATA_FILE);
 
 def add_pokemon(pokeId, name, lat, lng, timestamp, timeleft):
-    expiry = timestamp + timeleft
-    pokehash = '%s:%s:%s' % (lat, lng, pokeId)
-    if pokehash in DATA:
-        if abs(DATA[pokehash]['expiry'] - expiry) < 2:
-            # Assume it's the same one and average the expiry time
-            DATA[pokehash]['expiry'] += expiry
-            DATA[pokehash]['expiry'] /= 2
-        else:
-            print('[-] Two %s at the same location (%s,%s)' % (name, lat, lng))
-            DATA[pokehash]['expiry'] = max(DATA[pokehash]['expiry'], expiry)
-    else:
-        DATA[pokehash] = {
-            'id': pokeId,
-            'name': name,
-            'lat': lat,
-            'lng': lng,
-            'timestamp': timestamp,
-            'expiry': expiry
-        }
+    DATA.append({
+        'id': pokeId,
+        'name': name,
+        'lat': lat,
+        'lng': lng,
+        'timestamp': timestamp,
+        'timeleft': timeleft
+    });
 
 def set_location(location_name):
     geolocator = GoogleV3()
@@ -159,7 +141,6 @@ def api_req(api_endpoint, access_token, *mehs, **kw):
             protobuf = p_req.SerializeToString()
 
             r = SESSION.post(api_endpoint, data=protobuf, verify=False)
-            reqtime = time.time()
 
             p_ret = pokemon_pb2.ResponseEnvelop()
             p_ret.ParseFromString(r.content)
@@ -174,8 +155,8 @@ def api_req(api_endpoint, access_token, *mehs, **kw):
             if DEBUG:
                 print("[ ] Sleeping for 1 second")
             time.sleep(1)
-            return (reqtime, p_ret)
-        except Exception as e:
+            return p_ret
+        except Exception, e:
             if DEBUG:
                 print(e)
             print('[-] API request error, retrying')
@@ -213,12 +194,9 @@ def get_profile(access_token, api, useauth, *reqq):
     return api_req(api, access_token, req, useauth = useauth)
 
 def get_api_endpoint(access_token, api = API_URL):
-    (rtime, p_ret) = get_profile(access_token, api, None)
+    p_ret = get_profile(access_token, api, None)
     try:
-        if p_ret.api_url:
-            return ('https://%s/rpc' % p_ret.api_url)
-        else:
-            return None
+        return ('https://%s/rpc' % p_ret.api_url)
     except:
         return None
 
@@ -240,7 +218,7 @@ def login_ptc(username, password):
     ticket = None
     try:
         ticket = re.sub('.*ticket=', '', r1.history[0].headers['Location'])
-    except Exception as e:
+    except Exception, e:
         if DEBUG:
             print(r1.json()['errors'][0])
         return None
@@ -277,22 +255,19 @@ def raw_heartbeat(api_endpoint, access_token, response):
     m.lat = COORDS_LATITUDE
     m.long = COORDS_LONGITUDE
     m1.message = m.SerializeToString()
-    while True:
-        (hbtime, response) = get_profile(
-            access_token,
-            api_endpoint,
-            response.unknown7,
-            m1,
-            pokemon_pb2.RequestEnvelop.Requests(),
-            m4,
-            pokemon_pb2.RequestEnvelop.Requests(),
-            m5)
-        if response.payload:
-            break
+    response = get_profile(
+        access_token,
+        api_endpoint,
+        response.unknown7,
+        m1,
+        pokemon_pb2.RequestEnvelop.Requests(),
+        m4,
+        pokemon_pb2.RequestEnvelop.Requests(),
+        m5)
     payload = response.payload[0]
     heartbeat = pokemon_pb2.ResponseEnvelop.HeartbeatPayload()
     heartbeat.ParseFromString(payload)
-    return ((FLOAT_LAT, FLOAT_LONG), hbtime, heartbeat)
+    return heartbeat
 
 def heartbeat(api_endpoint, access_token, response):
     while True:
@@ -371,6 +346,7 @@ def scan(api_endpoint, access_token, response, origin, pokemons):
         print('[+] Scan: %0.1f %%' % (((steps + (pos * .25) - .25) / steplimit**2) * 100))
 
 def main():
+    write_data_to_file()
     pokemons = json.load(open('pokemon.json'))
     parser = argparse.ArgumentParser()
     parser.add_argument("-u", "--username", help="PTC Username", required=True)
@@ -393,35 +369,30 @@ def main():
         return
     print('[+] RPC Session Token: {} ...'.format(access_token[:25]))
 
-    while True:
-        api_endpoint = get_api_endpoint(access_token)
-        if api_endpoint is None:
-            print('[-] RPC server offline')
-        else:
-            break
+    api_endpoint = get_api_endpoint(access_token)
+    if api_endpoint is None:
+        print('[-] RPC server offline')
+        return
     print('[+] Received API endpoint: {}'.format(api_endpoint))
 
-    while True:
-        (rtime, response) = get_profile(access_token, api_endpoint, None)
-        if response is not None and len(response.payload):
-            print('[+] Login successful')
+    response = get_profile(access_token, api_endpoint, None)
+    if response is not None:
+        print('[+] Login successful')
 
-            payload = response.payload[0]
-            profile = pokemon_pb2.ResponseEnvelop.ProfilePayload()
-            profile.ParseFromString(payload)
-            print('[+] Username: {}'.format(profile.profile.username))
+        payload = response.payload[0]
+        profile = pokemon_pb2.ResponseEnvelop.ProfilePayload()
+        profile.ParseFromString(payload)
+        print('[+] Username: {}'.format(profile.profile.username))
 
-            creation_time = datetime.fromtimestamp(int(profile.profile.creation_time)/1000)
-            print('[+] You are playing Pokemon Go since: {}'.format(
-                creation_time.strftime('%Y-%m-%d %H:%M:%S'),
-            ))
+        creation_time = datetime.fromtimestamp(int(profile.profile.creation_time)/1000)
+        print('[+] You are playing Pokemon Go since: {}'.format(
+            creation_time.strftime('%Y-%m-%d %H:%M:%S'),
+        ))
 
-            for curr in profile.profile.currency:
-                print('[+] {}: {}'.format(curr.type, curr.amount))
-
-            break
-        else:
-            print('[-] Ooops...')
+        for curr in profile.profile.currency:
+            print('[+] {}: {}'.format(curr.type, curr.amount))
+    else:
+        print('[-] Ooops...')
 
     origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
 
