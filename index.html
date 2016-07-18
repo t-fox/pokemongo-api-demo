@@ -65,6 +65,24 @@
         return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
       }
 
+      function formatSeconds(s) {
+        var date = new Date(null);
+        date.setSeconds(s);
+
+        return (date.getUTCMinutes() > 0 ? date.getUTCMinutes() + "m " : "") + date.getUTCSeconds() + "s";
+      }
+
+      function getImage(p) {
+        var name = p.name;
+        if (p.name == "Nidoran F") {
+          name = "Nidorano";
+        }
+        else if (name == "Nidoran M") {
+          name = "Nidoran";
+        }
+        return "http://icons.iconarchive.com/icons/hektakun/pokemon/72/" + pad(p.id, 3) + "-" + cap(name) + "-icon.png";
+      }
+
       function toggleLayer(checked, pkmn) {
         if (checked) {
             hidden_layers.push(pkmn);
@@ -113,13 +131,13 @@
                 var infowindow = new google.maps.InfoWindow({
                 });
 
-                var image = "http://icons.iconarchive.com/icons/hektakun/pokemon/72/" + pad(p.id, 3) + "-" + cap(p.name) + "-icon.png";
+                var image = getImage(p);
 
                 var marker = new google.maps.Marker({
                   map: map,
                   position: {lat: p.lat, lng: p.lng},
                   label: "",
-                  title: "<b>"+p.name+"</b><br>Time left: " + p.timeleft + "s<br>Lat: "+p.lat+"<br>Long: "+p.lng,
+                  title: "<b>"+p.name+"</b><br>Time left: " + formatSeconds(p.timeleft) + "<br>Lat: "+p.lat+"<br>Long: "+p.lng,
                   icon: image
                 });
 
