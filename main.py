@@ -52,7 +52,6 @@ deflat, deflng = 0, 0
 default_step = 0.001
 
 NUM_STEPS = 5
-DATA_FILE = 'data.json'
 DATA = []
 
 def f2i(float):
@@ -73,10 +72,10 @@ def prune():
         if poke['timeleft'] <= 0:
             DATA.pop(i)
 
-def write_data_to_file():
+def write_data_to_file(user_data_file):
     prune()
 
-    with open(DATA_FILE, 'w') as f:
+    with open(user_data_file, 'w') as f:
         json.dump(DATA, f, indent=2)
 
 def add_pokemon(pokeId, name, lat, lng, timestamp, timeleft):
@@ -284,7 +283,7 @@ def heartbeat(api_endpoint, access_token, response):
             print('[-] Heartbeat missed, retrying')
 
 
-def scan(api_endpoint, access_token, response, origin, pokemons):
+def scan(api_endpoint, access_token, response, origin, pokemons, user_data_file):
     steps = 0
     steplimit = NUM_STEPS
     pos = 1
@@ -338,7 +337,7 @@ def scan(api_endpoint, access_token, response, origin, pokemons):
             timestamp = int(time.time())
             add_pokemon(poke.pokemon.PokemonId, pokemons[poke.pokemon.PokemonId - 1]['Name'], poke.Latitude, poke.Longitude, timestamp, poke.TimeTillHiddenMs / 1000)
 
-        write_data_to_file()
+        write_data_to_file(user_data_file)
 
         if (-steplimit/2 < x <= steplimit/2) and (-steplimit/2 < y <= steplimit/2):
             set_location_coords((x * 0.0025) + deflat, (y * 0.0025 ) + deflng, 0)
@@ -350,7 +349,6 @@ def scan(api_endpoint, access_token, response, origin, pokemons):
         print('[+] Scan: %0.1f %%' % (((steps + (pos * .25) - .25) / steplimit**2) * 100))
 
 def main():
-    write_data_to_file()
     pokemons = json.load(open('pokemon.json'))
     parser = argparse.ArgumentParser()
     parser.add_argument("-u", "--username", help="PTC Username", required=True)
@@ -359,6 +357,8 @@ def main():
     parser.add_argument("-d", "--debug", help="Debug Mode", action='store_true')
     parser.set_defaults(DEBUG=False)
     args = parser.parse_args()
+    user_data_file = args.username + '/data.json'
+    write_data_to_file(user_data_file)
 
     if args.debug:
         global DEBUG
@@ -401,7 +401,7 @@ def main():
     origin = LatLng.from_degrees(FLOAT_LAT, FLOAT_LONG)
 
     while True:
-        scan(api_endpoint, access_token, response, origin, pokemons)
+        scan(api_endpoint, access_token, response, origin, pokemons, user_data_file)
 
 
 if __name__ == '__main__':
