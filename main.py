@@ -195,6 +195,10 @@ def get_profile(access_token, api, useauth, *reqq):
 
 def get_api_endpoint(access_token, api = API_URL):
     p_ret = get_profile(access_token, api, None)
+    while not p_ret.api_url:
+        print('[-] Getting new api_url')
+        time.sleep(1)
+        p_ret = get_profile(access_token, api, None)
     try:
         return ('https://%s/rpc' % p_ret.api_url)
     except:
