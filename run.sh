@@ -10,12 +10,13 @@ else
 fi
 echo "service is running on port $PORT"
 #cd /opt/pokemongo-api-demo
-rm -rf $1
-mkdir $1
-cp index.html $1
-cp config.json $1
-cp data.json $1
-cd $1
+if [ ! -d "$1" ]; then
+    mkdir $1
+fi
+cp index.html $1/
+cp config.json $1/
+cp data.json $1/
+cd $1/
 python -m SimpleHTTPServer $PORT &>/dev/null &
-cd ..
+cd ../
 python main.py -u $1 -p $2 -l "$3"
