@@ -22,6 +22,21 @@
         height: 255px;
         width: 150px;
       }
+      #legend.hidden {
+        right: -175px !important;
+      }
+      #legend #hideLegend {
+        background-color: #FFF;
+        cursor: pointer;
+        font-size: 22px;
+        height: 25px;
+        left: -25px;
+        position: absolute;
+        text-align: center;
+        text-decoration: none;
+        top: 0;
+        width: 25px;
+      }
       #legend div {
        height: 210px;
        overflow: auto;
@@ -190,6 +205,22 @@
         loadScript("https://maps.googleapis.com/maps/api/js?key=" + config.GOOGLE_MAPS_API_KEY + "&libraries=drawing&callback=initMap");
       });
 
+      function hideLegend() {
+        hide = document.getElementById('hideLegend');
+        legend = document.getElementById('legend');
+        hidden = legend.hasAttribute('class', 'hidden');
+        if (hidden === true) {
+          legend.removeAttribute('class')
+          hide.innerText = '>';
+        }
+        else
+        {
+          legend.setAttribute('class', 'hidden');
+          hide.innerText = '<';
+        }
+
+      }
+
       function initMap() {
         console.log("Initializing map");
 
@@ -201,6 +232,7 @@
         var legend = document.createElement('div');
         legend.id = 'legend';
         var content = [];
+        content.push('<div id="hideLegend" onclick="hideLegend()">></div>');
         content.push('<h3>Hide Pokemon</h3>');
         content.push('<div id="legend-list"></div>');
         legend.innerHTML = content.join('');
